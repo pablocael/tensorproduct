@@ -12,6 +12,18 @@ QPointF interpolateBetween(double u, double v, const tk::spline& sp0,
     QPointF p1(sp1.interpolateX(u), sp1(sp1.interpolateX(u)));
     return (1 - v) * p0 + v * p1;
 }
+QPointF interpolateBetweenU(double u, double v, const tk::spline& sp0,
+                           const tk::spline& sp1) {
+    QPointF p0( sp0(sp0.interpolateX(u)), sp0.interpolateX(u));
+    QPointF p1( sp1(sp1.interpolateX(u)), sp1.interpolateX(u));
+    return (1 - v) * p0 + v * p1;
+}
+QPointF interpolateBetweenV(double u, double v, const tk::spline& sp0,
+                           const tk::spline& sp1) {
+    QPointF p0(sp0.interpolateX(v), sp0(sp0.interpolateX(v)));
+    QPointF p1(sp1.interpolateX(v), sp1(sp1.interpolateX(v)));
+    return (1 - u) * p0 + u * p1;
+}
 
 void generateSegments(const tk::spline& sp, QPainter& p, double step,
                       const QColor& color, bool exchangeXY = false) {
@@ -60,20 +72,22 @@ void generateInterSplinesSegments(const tk::spline& sp0, const tk::spline& sp1,
     p.drawPath(path);
 }
 
-void generateSplinePatch(const tk::spline& spU0, const tk::spline& spU1, const tk::spline& spV0, const tk::spline& spV1, double step)
+QPointF generateSplinePatch(double u, double v, const tk::spline& spU0, const tk::spline& spU1, const tk::spline& spV0, const tk::spline& spV1)
 {
+    QPointF result;
     // generate a bilinear interpolation of 4 corner points at (u,v) = (0, 0) and (u,v) = (1, 1)
     QPointF corner00(spU0(spU0.interpolateX(0)), spU0.interpolateX(0));
     QPointF corner01(spU0(spU0.interpolateX(1)), spU0.interpolateX(1));
     QPointF corner10(spU1(spU1.interpolateX(0)), spU1.interpolateX(0));
     QPointF corner11(spU1(spU1.interpolateX(1)), spU1.interpolateX(1));
 
-    for (double u = 0; u <= 1.0; u += step) {
-        for (double v = 0; v <= 1.0; v += step) {
-            QPointF p = interpolateBetween(u, v, spU0, spU1);
-            path.lineTo(p.y(), p.x());
-        }
-    }
+    QPointF B = corner00*(1-u)*(1-v) + corner01*u*(1-v) + corner10*(1-u)*v + corner11*u*v;
+
+    QPointF Lc = interpolateBetweenU(u, v, spU0, spU1);
+    result = Lc;
+    result += interpolateBetweenV(u, v, spV0, spV1);
+    result -= B;
+    return result;
 }
 
 int main(int argc, char* argv[]) {
@@ -96,8 +110,8 @@ int main(int argc, char* argv[]) {
     QPointF p00(100, 50);
     QPointF p10(200, 100);
     QPointF p20(300, 100);
-    QPointF p01(100, 200);
-    QPointF p21(300, 200);
+    QPointF p01(250, 200);
+    QPointF p21(350, 250);
     QPointF p02(100, 300);
     QPointF p12(200, 300);
     QPointF p22(300, 350);
@@ -115,8 +129,17 @@ int main(int argc, char* argv[]) {
     generateSegments(sy2, p, 1.0 / 200, QColor(0, 255, 0, 255));
     generateSegments(sx0, p, 1.0 / 200, QColor(0, 0, 255, 255), true);
     generateSegments(sx2, p, 1.0 / 200, QColor(0, 0, 255, 255), true);
-    generateInterSplinesSegments(sx0, sx2, p, 1.0/200, QColor(255,255,0), QColor(255,255,0), true);
+    /* generateInterSplinesSegments(sy0, sy2, p, 0.1, QColor(0,255,0), QColor(255,255,0)); */
+    /* generateInterSplinesSegments(sx0, sx2, p, 0.1, QColor(255,255,0), QColor(255,255,0), true); */
+    p.setPen(QPen(QColor(0,0,0,255), 4));
+    for (double u = 0; u <= 1.025; u += 0.025) {
+        for (double v = 0; v <= 1.025; v += 0.025) {
+            QPointF point = generateSplinePatch(u, v, sx0, sx2, sy0, sy2 );
+            p.drawPoint(point);
+        }
+    }
     m.save("result.png");
+
 
     return 0;
 }
