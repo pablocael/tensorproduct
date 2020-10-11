@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     QPointF p12(200, 300);
     QPointF p22(300, 350);
 
-    tk::spline sy0, sy2, sx0, sx2;
+    tk::spline sy0, sy2, sx0, sx2, sx3, sy01, sy02;
 
     sy0.set_points({p00.x(), p10.x(), p20.x()}, {p00.y(), p10.y(), p20.y()});
     sy2.set_points({p02.x(), p12.x(), p22.x()}, {p02.y(), p12.y(), p22.y()});
@@ -124,17 +124,31 @@ int main(int argc, char* argv[]) {
     sx0.set_points({p00.y(), p01.y(), p02.y()}, {p00.x(), p01.x(), p02.x()});
     sx2.set_points({p20.y(), p21.y(), p22.y()}, {p20.x(), p21.x(), p22.x()});
 
+    sx3.set_points({p20.y(), p21.y(), p22.y()}, {p20.x()+100, p21.x()+180, p22.x()+100});
+
+    sy01.set_points({p20.x(), p20.x()+50, p20.x()+100}, {p20.y(), p10.y(), p20.y()});
+    sy02.set_points({p22.x(), p22.x()+50, p22.x()+100}, {p22.y(), p12.y()+100, p22.y()});
+
     p.setRenderHint(QPainter::Antialiasing);
     generateSegments(sy0, p, 1.0 / 200, QColor(255, 0, 0, 255));
+    generateSegments(sy01, p, 1.0 / 200, QColor(255, 100, 0, 255));
+    generateSegments(sy02, p, 1.0 / 200, QColor(100, 255, 0, 255));
     generateSegments(sy2, p, 1.0 / 200, QColor(0, 255, 0, 255));
     generateSegments(sx0, p, 1.0 / 200, QColor(0, 0, 255, 255), true);
     generateSegments(sx2, p, 1.0 / 200, QColor(0, 0, 255, 255), true);
+    generateSegments(sx3, p, 1.0 / 200, QColor(0, 100, 255, 255), true);
     /* generateInterSplinesSegments(sy0, sy2, p, 0.1, QColor(0,255,0), QColor(255,255,0)); */
     /* generateInterSplinesSegments(sx0, sx2, p, 0.1, QColor(255,255,0), QColor(255,255,0), true); */
     p.setPen(QPen(QColor(0,0,0,255), 4));
     for (double u = 0; u <= 1.025; u += 0.025) {
         for (double v = 0; v <= 1.025; v += 0.025) {
             QPointF point = generateSplinePatch(u, v, sx0, sx2, sy0, sy2 );
+            p.drawPoint(point);
+        }
+    }
+    for (double u = 0; u <= 1.025; u += 0.025) {
+        for (double v = 0; v <= 1.025; v += 0.025) {
+            QPointF point = generateSplinePatch(u, v, sx2, sx3, sy01, sy02 );
             p.drawPoint(point);
         }
     }
